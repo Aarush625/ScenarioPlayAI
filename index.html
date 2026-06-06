@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scenario Play AI - Role Play</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0a0a0a;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* History Panel - Left Side */
+        .history-panel {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: #1a1a1a;
+            border-right: 1px solid #333;
+            padding: 20px;
+            z-index: 20;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .history-panel.visible {
+            transform: translateX(0);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #333;
+        }
+
+        .history-header h3 {
+            color: #a78bfa;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .close-history-btn {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 4px 10px;
+            color: #ccc;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .close-history-btn:hover {
+            background: #333;
+        }
+
+        .history-toggle {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            background: #1f1f1f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #a78bfa;
+            font-size: 0.75rem;
+            cursor: pointer;
+            z-index: 21;
+            font-weight: 500;
+        }
+
+        .history-toggle:hover {
+            background: #2a2a2a;
+            border-color: #667eea;
+        }
+
+        .history-item {
+            background: #0d0d0d;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: #1f1f1f;
+            border-color: #667eea;
+        }
+
+        .history-item-title {
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .history-item-preview {
+            color: #888;
+            font-size: 0.65rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-item-date {
+            color: #555;
+            font-size: 0.6rem;
+            margin-top: 6px;
+        }
+
+        .delete-chat-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 0.7rem;
+            float: right;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .delete-chat-btn:hover {
+            background: #2a1a1a;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 900px;
+            height: 85vh;
+            background: #1a1a1a;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #2d2d2d;
+            position: relative;
+        }
+
+        .chat-header {
+            background: #0d0d0d;
+            color: white;
+            padding: 16px 24px;
+            border-bottom: 1px solid #2d2d2d;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+
+        .chat-header p {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        /* Control Buttons - Top Right */
+        .chat-controls {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            background: #1f1f1f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: #ccc;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: #2a2a2a;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        /* Scenario Box - Top Right below buttons */
+        .scenario-box {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: #1f1f1f;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 12px;
+            width: 260px;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .scenario-box.hidden {
+            display: none;
+        }
+
+        .scenario-box label {
+            display: block;
+            color: #a78bfa;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .scenario-box input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d0d0d;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .scenario-box input:focus {
+            border-color: #667eea;
+        }
+
+        .apply-scenario-btn {
+            width: 100%;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #ccc;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .apply-scenario-btn:hover {
+            background: #333;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .reset-base-btn {
+            width: 100%;
+            margin-top: 6px;
+            padding: 6px 12px;
+            background: #1a1a1a;
+            border: 1px solid #3a1a1a;
+            border-radius: 8px;
+            color: #ef4444;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reset-base-btn:hover {
+            background: #2a1a1a;
+            border-color: #ef4444;
+        }
+
+        /* Toggle Button */
+        .toggle-scenario-btn {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: #1f1f1f;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 8px 12px;
+            color: #a78bfa;
+            font-size: 0.75rem;
+            cursor: pointer;
+            z-index: 10;
+            display: none;
+        }
+
+        .toggle-scenario-btn.visible {
+            display: block;
+        }
+
+        .toggle-scenario-btn:hover {
+            background: #2a2a2a;
+            border-color: #667eea;
+        }
+
+        /* Base Prompt Display */
+        .base-prompt-display {
+            background: #0d0d0d;
+            margin: 0 20px 10px 20px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+            font-size: 0.7rem;
+            color: #888;
+        }
+
+        .base-prompt-display span {
+            color: #a78bfa;
+            font-weight: 500;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #0f0f0f;
+        }
+
+        .messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .ai-message {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .user-message .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message .message-content {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #3a3a3a;
+        }
+
+        /* Formatted AI message styles */
+        .ai-message .message-content em {
+            color: #a78bfa;
+            font-style: italic;
+            display: block;
+            margin: 8px 0 4px 0;
+            line-height: 1.4;
+        }
+
+        .ai-message .message-content .dialogue {
+            color: #86efac;
+            font-weight: 500;
+            display: block;
+            margin: 4px 0 8px 0;
+            line-height: 1.5;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: #0d0d0d;
+            border-top: 1px solid #2d2d2d;
+            display: flex;
+            gap: 12px;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 12px 18px;
+            background: #1f1f1f;
+            border: 1px solid #333;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            color: white;
+            outline: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        #userInput:focus {
+            border-color: #667eea;
+            background: #252525;
+        }
+
+        #userInput::placeholder {
+            color: #666;
+        }
+
+        #sendBtn {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        #sendBtn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 12px 18px;
+            background: #2a2a2a;
+            border-radius: 20px;
+            width: fit-content;
+            margin-bottom: 16px;
+            margin-left: 20px;
+            border: 1px solid #3a3a3a;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #888;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .save-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2a2a2a;
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #86efac;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .save-indicator.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 700px) {
+            .scenario-box {
+                position: relative;
+                top: 0;
+                right: 0;
+                width: auto;
+                margin: 10px 20px;
+            }
+            .chat-controls {
+                position: relative;
+                top: 0;
+                right: 0;
+                justify-content: flex-end;
+                margin: 10px;
+            }
+            .history-toggle {
+                left: 10px;
+                top: 10px;
+                font-size: 0.65rem;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- History Toggle Button -->
+    <button class="history-toggle" id="historyToggleBtn">📜 HISTORY</button>
+
+    <!-- History Panel -->
+    <div class="history-panel" id="historyPanel">
+        <div class="history-header">
+            <h3>📜 Saved Chats</h3>
+            <button class="close-history-btn" id="closeHistoryBtn">Close</button>
+        </div>
+        <div id="chatHistoryList"></div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🎭 Scenario Play AI</h1>
+            <p>Role-play, scenarios, and interactive storytelling</p>
+        </div>
+
+        <div class="chat-controls">
+            <button class="control-btn" id="newChatBtn">✨ New Chat</button>
+            <button class="control-btn clear-btn" id="clearChatBtn">🗑️ Clear Chat</button>
+        </div>
+
+        <div class="scenario-box" id="scenarioBox">
+            <label>🎬 SCENARIO</label>
+            <input type="text" id="scenarioInput" placeholder="e.g., a shy college girl who wears glasses and is timid" value="a shy college girl who wears glasses and is a bit timid">
+            <button class="apply-scenario-btn" id="applyScenarioBtn">Apply Scenario</button>
+            <button class="reset-base-btn" id="resetBaseBtn">Reset to Default</button>
+        </div>
+
+        <button class="toggle-scenario-btn" id="toggleScenarioBtn">🎭 Edit Scenario</button>
+
+        <div class="base-prompt-display" id="basePromptDisplay">
+            <span>📜 Active Base Prompt:</span> Let's play A romance game, I'm the male lead and you are the girl, you generate i write my answer and so on
+        </div>
+
+        <div class="messages" id="messages">
+            <div class="message ai-message">
+                <div class="message-content">
+                    👋 Welcome to Scenario Play AI! I'll role-play according to your scenario.<br><br>
+                    <strong>Current Scenario:</strong> a shy college girl who wears glasses and is a bit timid<br><br>
+                    How would you like to start the scene?
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type your response or action here..." autocomplete="off">
+            <button id="sendBtn">Send</button>
+        </div>
+
+        <div class="save-indicator" id="saveIndicator">💾 Chat saved!</div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const scenarioInput = document.getElementById('scenarioInput');
+        const applyScenarioBtn = document.getElementById('applyScenarioBtn');
+        const resetBaseBtn = document.getElementById('resetBaseBtn');
+        const basePromptDisplay = document.getElementById('basePromptDisplay');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const saveIndicator = document.getElementById('saveIndicator');
+        const scenarioBox = document.getElementById('scenarioBox');
+        const toggleScenarioBtn = document.getElementById('toggleScenarioBtn');
+        const historyToggleBtn = document.getElementById('historyToggleBtn');
+        const historyPanel = document.getElementById('historyPanel');
+        const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+        const chatHistoryList = document.getElementById('chatHistoryList');
+
+        const BACKEND_URL = 'http://localhost:3000/api/chat';
+        const BASE_PROMPT = "Let's play A romance game, I'm the male lead and you are the girl, you generate i write my answer and so on";
+        
+        let currentScenario = "a shy college girl who wears glasses and is a bit timid";
+        let conversationHistory = [];
+
+        const STORAGE_KEYS = {
+            MESSAGES: 'scenarioPlay_messages',
+            SCENARIO: 'scenarioPlay_scenario',
+            CONVERSATION_HISTORY: 'scenarioPlay_history'
+        };
+
+        const HISTORY_STORAGE_KEY = 'scenarioPlay_all_chats';
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateBasePromptDisplay() {
+            basePromptDisplay.innerHTML = `<span>📜 Active Base Prompt:</span> ${BASE_PROMPT}<br><span>🎭 Current Scenario:</span> ${currentScenario}`;
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'flex';
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            if (!isUser) {
+                let text = content;
+                const parts = [];
+                let lastIndex = 0;
+                const regex = /(\*[^*]+\*|"[^"]+")/g;
+                let match;
+                
+                while ((match = regex.exec(text)) !== null) {
+                    if (match.index > lastIndex) {
+                        const beforeText = text.substring(lastIndex, match.index).trim();
+                        if (beforeText) parts.push({ type: 'text', content: beforeText });
+                    }
+                    const matched = match[0];
+                    if (matched.startsWith('*') && matched.endsWith('*')) {
+                        parts.push({ type: 'action', content: matched.slice(1, -1) });
+                    } else if (matched.startsWith('"') && matched.endsWith('"')) {
+                        parts.push({ type: 'dialogue', content: matched.slice(1, -1) });
+                    }
+                    lastIndex = match.index + match[0].length;
+                }
+                
+                if (lastIndex < text.length) {
+                    const remaining = text.substring(lastIndex).trim();
+                    if (remaining) parts.push({ type: 'text', content: remaining });
+                }
+                
+                if (parts.length === 0) {
+                    let sentences = text.split(/(?<=[.!?])\s+/);
+                    for (let sentence of sentences) {
+                        if (sentence.trim()) {
+                            if (sentence.includes('*')) {
+                                const subParts = sentence.split(/(\*[^*]+\*)/);
+                                for (let sub of subParts) {
+                                    if (sub.trim()) {
+                                        if (sub.startsWith('*') && sub.endsWith('*')) {
+                                            parts.push({ type: 'action', content: sub.slice(1, -1) });
+                                        } else {
+                                            parts.push({ type: 'dialogue', content: sub.trim() });
+                                        }
+                                    }
+                                }
+                            } else {
+                                parts.push({ type: 'dialogue', content: sentence.trim() });
+                            }
+                        }
+                    }
+                }
+                
+                let html = '';
+                for (const part of parts) {
+                    if (part.type === 'action') {
+                        html += `<em>${escapeHtml(part.content)}</em><br>`;
+                    } else if (part.type === 'dialogue') {
+                        html += `<span class="dialogue">"${escapeHtml(part.content)}"</span><br>`;
+                    } else {
+                        html += `<span class="dialogue">"${escapeHtml(part.content)}"</span><br>`;
+                    }
+                }
+                messageContent.innerHTML = html;
+            } else {
+                messageContent.textContent = content;
+            }
+            
+            messageDiv.appendChild(messageContent);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function saveCurrentChat() {
+            const messages = [];
+            const messageElements = document.querySelectorAll('#messages .message');
+            messageElements.forEach(msg => {
+                const isUser = msg.classList.contains('user-message');
+                const content = msg.querySelector('.message-content').innerText;
+                messages.push({ type: isUser ? 'user' : 'ai', content: content });
+            });
+            localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+            localStorage.setItem(STORAGE_KEYS.SCENARIO, currentScenario);
+            localStorage.setItem(STORAGE_KEYS.CONVERSATION_HISTORY, JSON.stringify(conversationHistory));
+        }
+
+        function saveCurrentChatToHistory(chatName = null) {
+            const messages = [];
+            const messageElements = document.querySelectorAll('#messages .message');
+            messageElements.forEach(msg => {
+                const isUser = msg.classList.contains('user-message');
+                const content = msg.querySelector('.message-content').innerText;
+                messages.push({ type: isUser ? 'user' : 'ai', content: content });
+            });
+            
+            if (messages.length === 0 || (messages.length === 1 && messages[0].content.includes("Welcome"))) return;
+            
+            const allChats = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+            
+            const chatSession = {
+                id: Date.now(),
+                name: chatName || `Chat ${new Date().toLocaleString()}`,
+                date: new Date().toISOString(),
+                messages: messages,
+                scenario: currentScenario,
+                conversationHistory: conversationHistory
+            };
+            
+            allChats.unshift(chatSession);
+            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(allChats));
+            renderChatHistory();
+        }
+
+        function loadChatSession(sessionId) {
+            const allChats = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+            const session = allChats.find(c => c.id === sessionId);
+            
+            if (session) {
+                messagesDiv.innerHTML = '';
+                session.messages.forEach(msg => {
+                    addMessage(msg.content, msg.type === 'user');
+                });
+                currentScenario = session.scenario;
+                scenarioInput.value = currentScenario;
+                conversationHistory = session.conversationHistory || [];
+                updateBasePromptDisplay();
+                saveCurrentChat();
+                hideHistoryPanel();
+            }
+        }
+
+        function deleteChatSession(sessionId, event) {
+            event.stopPropagation();
+            const allChats = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+            const filtered = allChats.filter(c => c.id !== sessionId);
+            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(filtered));
+            renderChatHistory();
+        }
+
+        function renderChatHistory() {
+            const allChats = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+            
+            if (allChats.length === 0) {
+                chatHistoryList.innerHTML = '<div style="color: #666; text-align: center; padding: 20px;">No saved chats yet</div>';
+                return;
+            }
+            
+            chatHistoryList.innerHTML = '';
+            allChats.forEach(chat => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.onclick = () => loadChatSession(chat.id);
+                
+                const firstMessage = chat.messages.find(m => m.type === 'user')?.content || 'Empty chat';
+                const preview = firstMessage.length > 40 ? firstMessage.substring(0, 40) + '...' : firstMessage;
+                
+                item.innerHTML = `
+                    <button class="delete-chat-btn" onclick="window.deleteChatSession(${chat.id}, event)">🗑️</button>
+                    <div class="history-item-title">${escapeHtml(chat.name)}</div>
+                    <div class="history-item-preview">${escapeHtml(preview)}</div>
+                    <div class="history-item-date">${new Date(chat.date).toLocaleString()}</div>
+                `;
+                chatHistoryList.appendChild(item);
+            });
+        }
+
+        function showHistoryPanel() {
+            historyPanel.classList.add('visible');
+            renderChatHistory();
+        }
+
+        function hideHistoryPanel() {
+            historyPanel.classList.remove('visible');
+        }
+
+        function autoSave() { saveCurrentChat(); }
+
+        async function generateInitialScene() {
+            showTyping();
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: `${BASE_PROMPT} (scenario: ${currentScenario}))\n\nStart the scene. Give a first response as the girl that sets the mood and engages the user. Use *actions* and "dialogue" format.`
+                    })
+                });
+                const data = await response.json();
+                hideTyping();
+                if (data.reply) {
+                    const messages = messagesDiv.children;
+                    if (messages.length > 0 && messages[0]?.innerText.includes("Welcome")) {
+                        messagesDiv.innerHTML = '';
+                    }
+                    addMessage(data.reply, false);
+                    conversationHistory.push({ role: "assistant", content: data.reply });
+                }
+            } catch (error) {
+                hideTyping();
+                addMessage("*I'm ready to play. What would you like to say?*", false);
+            }
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+            
+            addMessage(message, true);
+            conversationHistory.push({ role: "user", content: message });
+            userInput.value = '';
+            showTyping();
+            
+            let contextPrompt = `${BASE_PROMPT} (scenario: ${currentScenario}))\n\n`;
+            const recentHistory = conversationHistory.slice(-6);
+            for (const exchange of recentHistory) {
+                contextPrompt += `${exchange.role === 'user' ? 'User' : 'Girl'}: ${exchange.content}\n`;
+            }
+            contextPrompt += `\nUser: ${message}\n\nRespond in character as the girl. Use *actions* in asterisks and "dialogue" in quotes.`;
+            
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: contextPrompt })
+                });
+                const data = await response.json();
+                hideTyping();
+                if (data.reply) {
+                    addMessage(data.reply, false);
+                    conversationHistory.push({ role: "assistant", content: data.reply });
+                } else {
+                    addMessage("❌ Sorry, I couldn't process that request.", false);
+                }
+                autoSave();
+            } catch (error) {
+                hideTyping();
+                addMessage(`❌ Connection error: Make sure your backend is running at ${BACKEND_URL}`, false);
+            }
+        }
+
+        function clearChat(keepScenario = true) {
+            messagesDiv.innerHTML = '';
+            conversationHistory = [];
+            if (!keepScenario) {
+                currentScenario = "a shy college girl who wears glasses and is a bit timid";
+                scenarioInput.value = currentScenario;
+                updateBasePromptDisplay();
+            }
+            generateInitialScene();
+        }
+
+        function newChat() {
+            if (confirm('Start a new chat? Current conversation will be saved to history.')) {
+                saveCurrentChatToHistory();
+                clearChat(false);
+                renderChatHistory();
+            }
+        }
+
+        function hideScenarioBox() {
+            scenarioBox.classList.add('hidden');
+            toggleScenarioBtn.classList.add('visible');
+        }
+
+        function showScenarioBox() {
+            scenarioBox.classList.remove('hidden');
+            toggleScenarioBtn.classList.remove('visible');
+        }
+
+        function applyScenario() {
+            const newScenario = scenarioInput.value.trim();
+            if (newScenario) {
+                currentScenario = newScenario;
+                updateBasePromptDisplay();
+                conversationHistory = [];
+                messagesDiv.innerHTML = '';
+                generateInitialScene();
+                hideScenarioBox();
+                autoSave();
+            }
+        }
+
+        function resetToDefault() {
+            currentScenario = "a shy college girl who wears glasses and is a bit timid";
+            scenarioInput.value = currentScenario;
+            updateBasePromptDisplay();
+            conversationHistory = [];
+            messagesDiv.innerHTML = '';
+            generateInitialScene();
+            hideScenarioBox();
+            autoSave();
+        }
+
+        window.deleteChatSession = deleteChatSession;
+
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        applyScenarioBtn.addEventListener('click', applyScenario);
+        resetBaseBtn.addEventListener('click', resetToDefault);
+        newChatBtn.addEventListener('click', newChat);
+        clearChatBtn.addEventListener('click', () => {
+            if (confirm('Clear current chat?')) clearChat(true);
+        });
+        toggleScenarioBtn.addEventListener('click', showScenarioBox);
+        historyToggleBtn.addEventListener('click', showHistoryPanel);
+        closeHistoryBtn.addEventListener('click', hideHistoryPanel);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        window.addEventListener('beforeunload', () => saveCurrentChatToHistory());
+
+        // Initialize
+        updateBasePromptDisplay();
+        const loaded = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+        if (loaded && JSON.parse(loaded).length > 0) {
+            const savedMessages = JSON.parse(loaded);
+            messagesDiv.innerHTML = '';
+            savedMessages.forEach(msg => addMessage(msg.content, msg.type === 'user'));
+            const savedScenario = localStorage.getItem(STORAGE_KEYS.SCENARIO);
+            if (savedScenario) {
+                currentScenario = savedScenario;
+                scenarioInput.value = currentScenario;
+                updateBasePromptDisplay();
+            }
+            const savedHistory = localStorage.getItem(STORAGE_KEYS.CONVERSATION_HISTORY);
+            if (savedHistory) conversationHistory = JSON.parse(savedHistory);
+        } else {
+            generateInitialScene();
+        }
+        userInput.focus();
+        setTimeout(() => hideScenarioBox(), 2000);
+        renderChatHistory();
+    </script>
+</body>
+</html>
